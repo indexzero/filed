@@ -10,6 +10,9 @@
   "engines": {
     "node": "*"
   },
+  "devDependencies": {
+    "request": "https://github.com/mikeal/request/tarball/master"
+  },
   "scripts": {"test": "node test/test.js"},
   "main": "./main"
 }
