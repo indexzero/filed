@@ -109,7 +109,7 @@ function File (options) {
         }
         
         if (self.src.method !== 'HEAD') {
-          fs.createReadStream(self.path).pipe(self.dest)
+          fs.createReadStream(self.path).pipe(self)
         }
         return
       }
@@ -137,7 +137,7 @@ function File (options) {
         self.dest.setHeader('etag', self.etag)
         self.dest.setHeader('last-modified', self.lastmodified)
         self.dest.setHeader('content-length', stats.size)
-        fs.createReadStream(self.path).pipe(self.dest)
+        fs.createReadStream(self.path).pipe(self)
         return
       }
 
@@ -146,7 +146,7 @@ function File (options) {
       if (self.src && !self.dest) {
         stream.Stream.prototype.pipe.call(self, fs.createWriteStream(self.path))
       } else if (self.dest && !self.src) {
-        fs.createReadStream(self.path).pipe(self.dest)
+        fs.createReadStream(self.path).pipe(self)
       }
     }
 
@@ -163,7 +163,7 @@ function File (options) {
       if (self.buffers.length > 0) {
         stream.Stream.prototype.pipe.call(self, fs.createWriteStream(self.path))
       } else if (self.listeners('data').length > 0) {
-        fs.createReadStream(self.path).pipe(self.dest)
+        fs.createReadStream(self.path).pipe(self)
       } else {
         fs.createReadStream(self.path).pipe(self)
       }
@@ -176,7 +176,7 @@ util.inherits(File, stream.Stream)
 File.prototype.pipe = function (dest, options) {
   this.dest = dest
   this.destOptions = options
-  // stream.Stream.prototype.pipe.call(this, dest, options)
+  stream.Stream.prototype.pipe.call(this, dest, options)
 }
 File.prototype.write = function (chunk, encoding) {
   if (encoding) chunk = chunk.toString(encoding)
@@ -193,6 +193,15 @@ File.prototype.end = function (chunk) {
   } else {
     this.emit('end')
   }
+}
+
+File.prototype.emit = function (ev) {
+  if (ev === 'end' && this.src && this.dest && this.dest.writeHead && !this.srcEnded) {
+    this.srcEnded = true;
+    return false;
+  }
+  
+  stream.Stream.prototype.emit.apply(this, arguments);
 }
 
 module.exports = function (options) {
